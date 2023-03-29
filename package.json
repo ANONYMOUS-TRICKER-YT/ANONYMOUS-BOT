@@ -1,7 +1,7 @@
 {
-	"name": "Koja Babu",
+	"name": "AnonYmous TECH",
 	"version": "1.0.1",
-	"description": "A simple Facebook Messenger Bot Modified by Mr Koja",
+	"description": "A simple Facebook Messenger Bot Modified by BLACK HAT HACKER",
 	"main": "koja.js",
 	"scripts": {
 		"start": "pm2 link s9bwc3lzh6am3ks 2awd2heek4zxu9l; pm2 kill && pm2 start index.js -i 1 --no-daemon",
