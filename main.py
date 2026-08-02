@@ -4201,6 +4201,163 @@ async def admin_panel_callback_handler(update: Update, context):
             text += f"• `[{l.get('timestamp')}]` Admin `{l.get('admin_id')}`: {l.get('action')} - {l.get('details')}\n"
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
 
+async def cmd_admin_addcoupon(update: Update, context):
+    """/addcoupon CODE PERCENT|FIXED VALUE [MAX_USES] [EXPIRY_DAYS]"""
+    user_id = update.effective_user.id
+    if not is_admin(load_json, user_id):
+        await update.message.reply_text("❌ Unauthorized")
+        return
+
+    args = context.args
+    if not args or len(args) < 3:
+        await update.message.reply_text(
+            "❌ *Format:*\n`/addcoupon <code> <percent|fixed> <value> [max_uses] [expiry_days]`\n\n"
+            "Example:\n`/addcoupon SAVE10 percent 10 50 7`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+
+    code = args[0]
+    ctype = args[1].lower()
+    try:
+        val = float(args[2])
+        max_uses = int(args[3]) if len(args) > 3 else 0
+        exp_days = int(args[4]) if len(args) > 4 else 0
+    except ValueError:
+        await update.message.reply_text("❌ Invalid numbers entered.")
+        return
+
+    cp = admin_coupons.add_coupon(load_json, save_json, code, ctype, val, max_uses, exp_days)
+    admin_logs.log_admin_action(load_json, save_json, user_id, "ADD_COUPON", f"Code: {code}, Val: {val}")
+    await update.message.reply_text(f"✅ Coupon `{cp['code']}` created successfully!", parse_mode=ParseMode.MARKDOWN)
+
+async def cmd_admin_delcoupon(update: Update, context):
+    """/delcoupon CODE"""
+    user_id = update.effective_user.id
+    if not is_admin(load_json, user_id):
+        await update.message.reply_text("❌ Unauthorized")
+        return
+
+    if not context.args:
+        await update.message.reply_text("❌ Usage: `/delcoupon <code>`", parse_mode=ParseMode.MARKDOWN)
+        return
+
+    code = context.args[0]
+    res = admin_coupons.delete_coupon(load_json, save_json, code)
+    if res:
+        admin_logs.log_admin_action(load_json, save_json, user_id, "DEL_COUPON", f"Code: {code}")
+        await update.message.reply_text(f"🗑️ Coupon `{code.upper()}` deleted.", parse_mode=ParseMode.MARKDOWN)
+    else:
+        await update.message.reply_text("❌ Coupon not found.")
+
+async def cmd_admin_addcategory(update: Update, context):
+    """/addcategory <name> [emoji]"""
+    user_id = update.effective_user.id
+    if not is_admin(load_json, user_id):
+        await update.message.reply_text("❌ Unauthorized")
+        return
+
+    if not context.args:
+        await update.message.reply_text("❌ Usage: `/addcategory <name> [emoji]`", parse_mode=ParseMode.MARKDOWN)
+        return
+
+    name = context.args[0]
+    emoji = context.args[1] if len(context.args) > 1 else "📁"
+    cid = admin_products.add_category(load_json, save_json, name, emoji)
+    admin_logs.log_admin_action(load_json, save_json, user_id, "ADD_CATEGORY", f"ID: {cid}, Name: {name}")
+    await update.message.reply_text(f"✅ Category *{emoji} {name}* created! (ID: `{cid}`)", parse_mode=ParseMode.MARKDOWN)
+
+async def cmd_admin_bulkprice(update: Update, context):
+    """/bulkprice <percent> e.g. /bulkprice +10 or /bulkprice -5"""
+    user_id = update.effective_user.id
+    if not is_admin(load_json, user_id):
+        await update.message.reply_text("❌ Unauthorized")
+        return
+
+    if not context.args:
+        await update.message.reply_text("❌ Usage: `/bulkprice <percent>` (e.g. `/bulkprice 10` or `/bulkprice -5`)", parse_mode=ParseMode.MARKDOWN)
+        return
+
+    try:
+        pct = float(context.args[0])
+    except ValueError:
+        await update.message.reply_text("❌ Invalid percentage number.")
+        return
+
+    admin_products.bulk_adjust_prices(load_json, save_json, PRODUCTS, pct)
+    admin_logs.log_admin_action(load_json, save_json, user_id, "BULK_PRICE", f"Pct: {pct}%")
+    await update.message.reply_text(f"✅ All product prices updated by *{pct}%*!", parse_mode=ParseMode.MARKDOWN)
+
+async def cmd_admin_backup(update: Update, context):
+    """/backup - Export database snapshot."""
+    user_id = update.effective_user.id
+    if not is_admin(load_json, user_id):
+        await update.message.reply_text("❌ Unauthorized")
+        return
+
+    msg = await update.message.reply_text("⏳ Generating database snapshot...")
+    backup_data = admin_backup.create_database_backup(load_json, save_json)
+    admin_logs.log_admin_action(load_json, save_json, user_id, "CREATE_BACKUP", f"Time: {backup_data['timestamp']}")
+    await msg.edit_text(f"✅ *Database Backup Created!*\nTimestamp: `{backup_data['timestamp']}`", parse_mode=ParseMode.MARKDOWN)
+
+async def cmd_admin_broadcast(update: Update, context):
+    """/broadcast <message text>"""
+    user_id = update.effective_user.id
+    if not is_admin(load_json, user_id):
+        await update.message.reply_text("❌ Unauthorized")
+        return
+
+    if not context.args:
+        await update.message.reply_text("❌ Usage: `/broadcast <message text>`", parse_mode=ParseMode.MARKDOWN)
+        return
+
+    text = " ".join(context.args)
+    msg = await update.message.reply_text("📢 Starting broadcast to all users...")
+    res = await admin_broadcast.execute_broadcast(context.application, load_json, text)
+    admin_logs.log_admin_action(load_json, save_json, user_id, "BROADCAST", f"Total: {res['total']}, Success: {res['success']}")
+    await msg.edit_text(
+        f"✅ *Broadcast Finished!*\n\n"
+        f"👥 Total Users: {res['total']}\n"
+        f"✅ Success: {res['success']}\n"
+        f"❌ Failed: {res['failed']}",
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+async def cmd_admin_search(update: Update, context):
+    """/search <query>"""
+    user_id = update.effective_user.id
+    if not is_admin(load_json, user_id):
+        await update.message.reply_text("❌ Unauthorized")
+        return
+
+    if not context.args:
+        await update.message.reply_text("❌ Usage: `/search <query>`", parse_mode=ParseMode.MARKDOWN)
+        return
+
+    query = " ".join(context.args)
+    get_prods = lambda: admin_products.get_all_products(load_json, PRODUCTS)
+    res = search_engine.universal_search(load_json, get_prods, query)
+
+    text = f"🔍 *SEARCH RESULTS FOR:* `{query}`\n─────────────────────\n\n"
+    text += f"📦 *Products ({len(res['products'])}):*\n"
+    for p in res['products'][:5]:
+        text += f"• [{p.get('name')}] Price: ${p.get('price')}\n"
+
+    text += f"\n🧾 *Orders ({len(res['orders'])}):*\n"
+    for o in res['orders'][:5]:
+        text += f"• Order `{o.get('id')}` - User `{o.get('user_id')}` - ${o.get('price')}\n"
+
+    text += f"\n👥 *Users ({len(res['users'])}):*\n"
+    for u in res['users'][:5]:
+        text += f"• User `{u.get('user_id')}` - Balance: ${u.get('balance')}\n"
+
+    text += f"\n🏷️ *Coupons ({len(res['coupons'])}):*\n"
+    for c in res['coupons'][:5]:
+        text += f"• Coupon `{c.get('code')}` - Discount: {c.get('value')}\n"
+
+    await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+
 class _HealthHandler(BaseHTTPRequestHandler):
     """Minimal HTTP handler so the deployment detects an open port."""
     def do_GET(self):
@@ -4449,6 +4606,13 @@ def main():
     app.add_handler(CommandHandler("endrewards", admin_endrewards))
     # Admin Panel Handlers
     app.add_handler(CommandHandler("admin", cmd_admin_panel))
+    app.add_handler(CommandHandler("addcoupon", cmd_admin_addcoupon))
+    app.add_handler(CommandHandler("delcoupon", cmd_admin_delcoupon))
+    app.add_handler(CommandHandler("addcategory", cmd_admin_addcategory))
+    app.add_handler(CommandHandler("bulkprice", cmd_admin_bulkprice))
+    app.add_handler(CommandHandler("backup", cmd_admin_backup))
+    app.add_handler(CommandHandler("broadcast", cmd_admin_broadcast))
+    app.add_handler(CommandHandler("search", cmd_admin_search))
     app.add_handler(CallbackQueryHandler(admin_panel_callback_handler, pattern=r"^adm_menu_"))
 
     # GitHub Integration Handlers
