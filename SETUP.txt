@@ -1,0 +1,40 @@
+CHEAP AI TOOLS — Telegram Bot
+=============================
+
+Ye bot python-telegram-bot (v21.6) par bana hai. Data PostgreSQL database
+mein store hota hai (kv_store table) — JSON files sirf pehli dafa ke seed
+ke liye hain.
+
+DOOSRE REPLIT ACCOUNT PAR CHALANE KE STEPS
+------------------------------------------
+1. Nayi Replit app banayein (Python) ya is ZIP ko import karein.
+2. Yeh saari files upload/extract karein.
+3. Secrets (Tools > Secrets) mein yeh add karein:
+   - BOT_TOKEN    = (BotFather se naya bot token)
+   - DATABASE_URL = automatically milta hai jab aap PostgreSQL database add karte hain
+   - GITHUB_TOKEN = (Aapka GitHub Personal Access Token)
+4. Database add karein (Replit ka built-in PostgreSQL).
+5. .replit file mein yeh values apne hisaab se badlein (userenv.shared section):
+   - ADMIN_ID       = aapki apni Telegram numeric ID
+   - CHANNEL_ID     = aapke channel ka @username
+   - CHANNEL_LINK   = channel ka link
+   - BANK_DETAILS   = aapki payment details
+   - CRYPTO_ADDRESS = aapka crypto/Binance UID
+6. Run karein — command: python main.py
+
+ZAROORI NOTE
+------------
+- BOT_TOKEN is ZIP mein SHAAMIL NAHI hai (security). Har account par apna
+  naya token BotFather se lein.
+- Ek hi token ko ek waqt mein sirf EK jagah chalayein. Agar do jagah chala to
+  Telegram "409 Conflict" error dega.
+- Deploy: Reserved VM par publish karein (deploymentTarget = "vm" already set hai).
+
+FILES
+-----
+main.py            -> poora bot code
+overlay_banners.py -> product banner image helper
+product_images/    -> product ki tasveerein (1.png .. 5.png)
+inventory.json     -> stock seed data
+requirements.txt   -> Python packages
+.replit / replit.nix -> Replit config

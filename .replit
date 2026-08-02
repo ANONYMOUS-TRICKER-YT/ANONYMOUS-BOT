@@ -1,0 +1,26 @@
+modules = ["python-3.11"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib"]
+
+[userenv]
+
+[userenv.shared]
+ADMIN_ID = "5946616521"
+BANK_DETAILS = "Bank: NayaPay | NAYAPAY IBAN: PK83NAYA1234503043320730 | Name: AHMED ZAIB KHAN | IBAN: PK83NAYA1234503043320730"
+CRYPTO_ADDRESS = "BINANCE (UID): 719439083"
+CHANNEL_ID = "@cheapAiTools_Alerts"
+CHANNEL_LINK = "https://t.me/cheapAiTools_Alerts"
+
+[workflows]
+
+[deployment]
+deploymentTarget = "vm"
+run = ["python", "main.py"]
+
+[[ports]]
+localPort = 8099
+externalPort = 80

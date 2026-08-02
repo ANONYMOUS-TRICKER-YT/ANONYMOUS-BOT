@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+wallets.json
+referrals.json
+orders.json
